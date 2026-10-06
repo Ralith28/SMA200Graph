@@ -286,7 +286,7 @@ function drawChart() {
   const dates = Object.keys(savedSmaData)
     .filter(date => savedPriceData[date])
     .sort()
-    .slice(-60);
+    .slice(-300);
 
   if (dates.length < 2) {
     return;
