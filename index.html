@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SMA200 Dashboard</title>
+<title>Finance & SMA200 Dashboard</title>
 
 <style>
 /* Base Light Theme */
@@ -15,6 +15,7 @@
   --text-muted: #64748b;
   --border: #e2e8f0;
   --primary: #2563eb;
+  --primary-hover: #1d4ed8;
   --green: #10b981;
   --green-bg: #ecfdf5;
   --red: #ef4444;
@@ -22,6 +23,7 @@
   --radius: 16px;
   --grid-line: #f1f5f9;
   --toggle-bg: #e2e8f0;
+  --sidebar-width: 240px;
 }
 
 /* Dark Theme Variables */
@@ -32,6 +34,7 @@
   --text-muted: #94a3b8;
   --border: #334155;
   --primary: #3b82f6;
+  --primary-hover: #60a5fa;
   --green: #34d399;
   --green-bg: rgba(6, 78, 59, 0.4);
   --red: #f87171;
@@ -51,40 +54,82 @@ body {
   background: var(--bg);
   color: var(--text-main);
   line-height: 1.5;
-  padding: 24px 16px;
+  display: flex;
+  min-height: 100vh;
   transition: background-color 0.3s, color 0.3s;
 }
 
-.container {
-  max-width: 680px;
-  margin: 0 auto;
+/* Sidebar Layout */
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--card-bg);
+  border-right: 1px solid var(--border);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  transition: background-color 0.3s, border-color 0.3s;
 }
 
-header {
+.brand {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nav-item {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
+}
+
+.nav-item:hover {
+  background: var(--bg);
+  color: var(--text-main);
+}
+
+.nav-item.active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.sidebar-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
 }
 
-h1 {
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-/* Theme Toggle Button */
 .theme-btn {
   background: var(--toggle-bg);
   border: none;
   color: var(--text-main);
-  font-size: 18px;
-  padding: 8px 12px;
+  font-size: 16px;
+  padding: 8px 14px;
   border-radius: 20px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
   font-weight: 600;
   transition: all 0.2s;
 }
@@ -93,6 +138,23 @@ h1 {
   opacity: 0.8;
 }
 
+/* Main Content Area */
+.main-content {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  padding: 32px 24px;
+  max-width: 800px;
+}
+
+.page-view {
+  display: none;
+}
+
+.page-view.active {
+  display: block;
+}
+
+/* Dashboard Styles */
 .status-banner {
   text-align: center;
   padding: 16px 20px;
@@ -248,6 +310,55 @@ canvas {
 .dot-spy { background: var(--text-main); }
 .dot-sma { background: var(--primary); }
 
+/* Form Styles für den Rechner */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-main);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.calc-results {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.calc-box {
+  background: var(--bg);
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.calc-box .num {
+  font-size: 20px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
 footer {
   text-align: center;
   margin-top: 32px;
@@ -279,77 +390,183 @@ footer {
   margin-top: 12px;
   text-align: center;
 }
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  body {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    position: relative;
+    height: auto;
+    padding: 16px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .main-content {
+    margin-left: 0;
+    padding: 20px 16px;
+  }
+  .nav-list {
+    flex-direction: row;
+  }
+  .calc-results {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
 </head>
 
 <body>
 
-<div class="container">
-
-  <header>
-    <h1>SMA200 Dashboard</h1>
-    <button class="theme-btn" id="themeToggle" onclick="toggleTheme()">🌙</button>
-  </header>
-
-  <div id="signal" class="status-banner neutral">
-    DATEN WERDEN GELADEN
+<!-- NAVIGATION / SIDEBAR -->
+<aside class="sidebar">
+  <div>
+    <div class="brand">📈 FinanceHub</div>
+    <ul class="nav-list">
+      <li class="nav-item active" onclick="switchPage('dashboard')">
+        📊 SMA200 Dashboard
+      </li>
+      <li class="nav-item" onclick="switchPage('calculator')">
+        🧮 Zinseszinsrechner
+      </li>
+    </ul>
   </div>
 
-  <div class="grid">
-    <div class="card">
-      <div class="label">SPY Kurs</div>
-      <div class="value" id="price">...</div>
-    </div>
-
-    <div class="card">
-      <div class="label">SMA200</div>
-      <div class="value" id="sma">...</div>
-    </div>
-
-    <div class="card full-width">
-      <div class="label">Abstand zum SMA200</div>
-      <div class="small-value" id="distance">...</div>
-    </div>
+  <div class="sidebar-footer">
+    <span style="font-size: 12px; color: var(--text-muted);">Theme</span>
+    <button class="theme-btn" id="themeToggle" onclick="toggleTheme()">🌙 Dark</button>
   </div>
+</aside>
 
-  <div class="card full-width">
-    <div class="chart-header">
-      <div class="label" style="margin: 0;">Chart-Verlauf</div>
-      <div class="timeframe-selector">
-        <button class="tf-btn" onclick="setTimeframe(30)">1M</button>
-        <button class="tf-btn active" onclick="setTimeframe(100)">MAX (~3M)</button>
+<!-- HAUPTINHALT -->
+<main class="main-content">
+
+  <!-- PAGE 1: SMA200 DASHBOARD -->
+  <section id="page-dashboard" class="page-view active">
+    <div id="signal" class="status-banner neutral">
+      DATEN WERDEN GELADEN
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="label">SPY Kurs</div>
+        <div class="value" id="price">...</div>
+      </div>
+
+      <div class="card">
+        <div class="label">SMA200</div>
+        <div class="value" id="sma">...</div>
+      </div>
+
+      <div class="card full-width">
+        <div class="label">Abstand zum SMA200</div>
+        <div class="small-value" id="distance">...</div>
       </div>
     </div>
 
-    <div class="chart-wrapper">
-      <canvas id="chart"></canvas>
-      <div id="tooltip" class="chart-tooltip"></div>
+    <div class="card full-width">
+      <div class="chart-header">
+        <div class="label" style="margin: 0;">Chart-Verlauf</div>
+        <div class="timeframe-selector">
+          <button class="tf-btn" onclick="setTimeframe(30)">1M</button>
+          <button class="tf-btn active" onclick="setTimeframe(100)">MAX (~3M)</button>
+        </div>
+      </div>
+
+      <div class="chart-wrapper">
+        <canvas id="chart"></canvas>
+        <div id="tooltip" class="chart-tooltip"></div>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item"><span class="dot dot-spy"></span> SPY Kurs</div>
+        <div class="legend-item"><span class="dot dot-sma"></span> SMA200</div>
+      </div>
     </div>
 
-    <div class="legend">
-      <div class="legend-item"><span class="dot dot-spy"></span> SPY Kurs</div>
-      <div class="legend-item"><span class="dot dot-sma"></span> SMA200</div>
+    <footer>
+      <div id="updated">Stand: ...</div>
+      <button class="reload-btn" onclick="forceReload()">🔄 Daten erneuern</button>
+      <div id="error" class="error"></div>
+    </footer>
+  </section>
+
+  <!-- PAGE 2: ZINSESZINSRECHNER -->
+  <section id="page-calculator" class="page-view">
+    <h1 style="margin-bottom: 24px;">Zinseszinsrechner</h1>
+
+    <div class="card">
+      <div class="form-group">
+        <label>Startkapital (€)</label>
+        <input type="number" id="calc-start" class="form-control" value="10000" oninput="calculateCompoundInterest()">
+      </div>
+
+      <div class="form-group">
+        <label>Monatliche Sparrate (€)</label>
+        <input type="number" id="calc-monthly" class="form-control" value="250" oninput="calculateCompoundInterest()">
+      </div>
+
+      <div class="form-group">
+        <label>Anlagedauer (Jahre)</label>
+        <input type="number" id="calc-years" class="form-control" value="15" oninput="calculateCompoundInterest()">
+      </div>
+
+      <div class="form-group">
+        <label>Jährliche Rendite (%)</label>
+        <input type="number" id="calc-rate" class="form-control" value="8" step="0.5" oninput="calculateCompoundInterest()">
+      </div>
+
+      <div class="calc-results">
+        <div class="calc-box">
+          <div class="label">Endkapital</div>
+          <div class="num" id="res-total" style="color: var(--primary);">0 €</div>
+        </div>
+        <div class="calc-box">
+          <div class="label">Eingezahlt</div>
+          <div class="num" id="res-invested">0 €</div>
+        </div>
+        <div class="calc-box">
+          <div class="label">Zinsertrag</div>
+          <div class="num" id="res-interest" style="color: var(--green);">0 €</div>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <footer>
-    <div id="updated">Stand: ...</div>
-    <button class="reload-btn" onclick="forceReload()">🔄 Daten erneuern</button>
-    <div id="error" class="error"></div>
-  </footer>
-
-</div>
+</main>
 
 <script>
 const API_KEY = "700BBS7NX2KASU5";
 const SYMBOL = "SPY";
-const CACHE_KEY = "sma200_dashboard_cache_v5";
+const CACHE_KEY = "sma200_dashboard_cache_v6";
 const THEME_KEY = "sma200_dashboard_theme";
 
 let savedPriceData = null;
 let savedSmaData = null;
 let currentTimeframe = 100;
 let chartPoints = [];
+
+// =====================================================
+// NAVIGATION (SINGLE PAGE APPLICATION)
+// =====================================================
+function switchPage(pageId) {
+  document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+  document.getElementById(`page-${pageId}`).classList.add('active');
+
+  const activeNav = Array.from(document.querySelectorAll('.nav-item'))
+    .find(el => el.getAttribute('onclick').includes(pageId));
+  if (activeNav) activeNav.classList.add('active');
+
+  if (pageId === 'dashboard') {
+    setTimeout(drawChart, 50);
+  } else if (pageId === 'calculator') {
+    calculateCompoundInterest();
+  }
+}
 
 // =====================================================
 // THEME (DARK MODE) STEUERUNG
@@ -365,14 +582,45 @@ function toggleTheme() {
   document.documentElement.setAttribute("data-theme", current);
   localStorage.setItem(THEME_KEY, current);
   updateThemeButton(current);
-  drawChart(); // Chart mit den neuen Farben neu zeichnen
+  drawChart();
 }
 
 function updateThemeButton(theme) {
-  document.getElementById("themeToggle").textContent = theme === "dark" ? "☀️" : "🌙";
+  document.getElementById("themeToggle").textContent = theme === "dark" ? "☀️ Light" : "🌙 Dark";
 }
 
 initTheme();
+
+// =====================================================
+// ZINSESZINS BERECHNUNG
+// =====================================================
+function calculateCompoundInterest() {
+  const start = parseFloat(document.getElementById('calc-start').value) || 0;
+  const monthly = parseFloat(document.getElementById('calc-monthly').value) || 0;
+  const years = parseInt(document.getElementById('calc-years').value) || 0;
+  const ratePct = parseFloat(document.getElementById('calc-rate').value) || 0;
+
+  const r = ratePct / 100 / 12;
+  const months = years * 12;
+
+  let total = start;
+  let invested = start;
+
+  for (let i = 0; i < months; i++) {
+    total = (total + monthly) * (1 + r);
+    invested += monthly;
+  }
+
+  const interest = total - invested;
+
+  document.getElementById('res-total').textContent = formatCurrency(total);
+  document.getElementById('res-invested').textContent = formatCurrency(invested);
+  document.getElementById('res-interest').textContent = formatCurrency(interest);
+}
+
+function formatCurrency(val) {
+  return val.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+}
 
 function formatNumber(val) {
   return Number(val).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -437,7 +685,6 @@ function drawChart() {
 
   ctx.clearRect(0, 0, width, height);
 
-  // Dynamische Farben aus CSS abfragen
   const style = getComputedStyle(document.body);
   const isDark = document.documentElement.getAttribute("data-theme") === "dark";
   const gridColor = style.getPropertyValue("--grid-line").trim();
@@ -476,7 +723,6 @@ function drawChart() {
   // X-Achse
   ctx.fillStyle = textColor;
   ctx.font = "500 10px -apple-system, sans-serif";
-
   ctx.textAlign = "left";
   ctx.fillText(dates[0], left, height - 8);
 
@@ -487,7 +733,7 @@ function drawChart() {
   ctx.textAlign = "right";
   ctx.fillText(dates[dates.length - 1], width - right, height - 8);
 
-  // Flächenfärbung
+  // Fläche
   ctx.beginPath();
   prices.forEach((val, i) => {
     if (i === 0) ctx.moveTo(getX(i), getY(val));
@@ -497,7 +743,7 @@ function drawChart() {
     ctx.lineTo(getX(i), getY(smas[i]));
   }
   ctx.closePath();
-  
+
   const isPositive = prices[prices.length - 1] >= smas[smas.length - 1];
   ctx.fillStyle = isPositive 
     ? (isDark ? "rgba(52, 211, 153, 0.12)" : "rgba(16, 185, 129, 0.08)") 
