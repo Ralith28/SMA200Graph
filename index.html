@@ -7,6 +7,7 @@
 <title>SMA200 Dashboard</title>
 
 <style>
+/* Base Light Theme */
 :root {
   --bg: #f8fafc;
   --card-bg: #ffffff;
@@ -19,6 +20,24 @@
   --red: #ef4444;
   --red-bg: #fef2f2;
   --radius: 16px;
+  --grid-line: #f1f5f9;
+  --toggle-bg: #e2e8f0;
+}
+
+/* Dark Theme Variables */
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --card-bg: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --primary: #3b82f6;
+  --green: #34d399;
+  --green-bg: rgba(6, 78, 59, 0.4);
+  --red: #f87171;
+  --red-bg: rgba(127, 29, 29, 0.4);
+  --grid-line: #334155;
+  --toggle-bg: #334155;
 }
 
 * {
@@ -33,11 +52,45 @@ body {
   color: var(--text-main);
   line-height: 1.5;
   padding: 24px 16px;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 .container {
   max-width: 680px;
   margin: 0 auto;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+/* Theme Toggle Button */
+.theme-btn {
+  background: var(--toggle-bg);
+  border: none;
+  color: var(--text-main);
+  font-size: 18px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.theme-btn:hover {
+  opacity: 0.8;
 }
 
 .status-banner {
@@ -54,31 +107,20 @@ body {
 
 .status-banner.invested {
   background: var(--green-bg);
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+  color: var(--green);
+  border: 1px solid var(--green);
 }
 
 .status-banner.out {
   background: var(--red-bg);
-  color: #991b1b;
-  border: 1px solid #fecaca;
+  color: var(--red);
+  border: 1px solid var(--red);
 }
 
 .status-banner.neutral {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--card-bg);
+  color: var(--text-muted);
   border: 1px solid var(--border);
-}
-
-header {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
-h1 {
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
 }
 
 .grid {
@@ -94,6 +136,7 @@ h1 {
   padding: 20px;
   border: 1px solid var(--border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: background-color 0.3s, border-color 0.3s;
 }
 
 .card.full-width {
@@ -130,7 +173,7 @@ h1 {
 .timeframe-selector {
   display: flex;
   gap: 6px;
-  background: #f1f5f9;
+  background: var(--bg);
   padding: 4px;
   border-radius: 8px;
 }
@@ -148,7 +191,7 @@ h1 {
 }
 
 .tf-btn.active {
-  background: #ffffff;
+  background: var(--card-bg);
   color: var(--text-main);
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
@@ -165,7 +208,6 @@ canvas {
   cursor: crosshair;
 }
 
-/* Tooltip Styling */
 .chart-tooltip {
   position: absolute;
   display: none;
@@ -227,7 +269,7 @@ footer {
 }
 
 .reload-btn:hover {
-  background: #ffffff;
+  background: var(--card-bg);
   color: var(--text-main);
 }
 
@@ -246,6 +288,7 @@ footer {
 
   <header>
     <h1>SMA200 Dashboard</h1>
+    <button class="theme-btn" id="themeToggle" onclick="toggleTheme()">🌙</button>
   </header>
 
   <div id="signal" class="status-banner neutral">
@@ -300,12 +343,36 @@ footer {
 <script>
 const API_KEY = "700BBS7NX2KASU5";
 const SYMBOL = "SPY";
-const CACHE_KEY = "sma200_dashboard_cache_v4";
+const CACHE_KEY = "sma200_dashboard_cache_v5";
+const THEME_KEY = "sma200_dashboard_theme";
 
 let savedPriceData = null;
 let savedSmaData = null;
 let currentTimeframe = 100;
-let chartPoints = []; // Für Hover-Erkennung
+let chartPoints = [];
+
+// =====================================================
+// THEME (DARK MODE) STEUERUNG
+// =====================================================
+function initTheme() {
+  const savedTheme = localStorage.getItem(THEME_KEY) || "light";
+  document.documentElement.setAttribute("data-theme", savedTheme);
+  updateThemeButton(savedTheme);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", current);
+  localStorage.setItem(THEME_KEY, current);
+  updateThemeButton(current);
+  drawChart(); // Chart mit den neuen Farben neu zeichnen
+}
+
+function updateThemeButton(theme) {
+  document.getElementById("themeToggle").textContent = theme === "dark" ? "☀️" : "🌙";
+}
+
+initTheme();
 
 function formatNumber(val) {
   return Number(val).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -370,8 +437,16 @@ function drawChart() {
 
   ctx.clearRect(0, 0, width, height);
 
-  // Y-Achse (Hilfslinien & Zahlen)
-  ctx.strokeStyle = "#f1f5f9";
+  // Dynamische Farben aus CSS abfragen
+  const style = getComputedStyle(document.body);
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  const gridColor = style.getPropertyValue("--grid-line").trim();
+  const textColor = style.getPropertyValue("--text-muted").trim();
+  const spyColor = style.getPropertyValue("--text-main").trim();
+  const smaColor = style.getPropertyValue("--primary").trim();
+
+  // Y-Achse
+  ctx.strokeStyle = gridColor;
   ctx.lineWidth = 1;
   for (let i = 0; i <= 3; i++) {
     const y = top + (cHeight * i) / 3;
@@ -381,7 +456,7 @@ function drawChart() {
     ctx.stroke();
 
     const val = max - ((max - min) * i) / 3;
-    ctx.fillStyle = "#94a3b8";
+    ctx.fillStyle = textColor;
     ctx.font = "500 11px -apple-system, sans-serif";
     ctx.textAlign = "right";
     ctx.fillText(val.toFixed(0), left - 8, y + 4);
@@ -390,7 +465,6 @@ function drawChart() {
   function getX(i) { return left + (i / (dates.length - 1)) * cWidth; }
   function getY(val) { return top + ((max - val) / (max - min)) * cHeight; }
 
-  // Punkte für Hover-Event speichern
   chartPoints = dates.map((d, i) => ({
     x: getX(i),
     yPrice: getY(prices[i]),
@@ -399,24 +473,21 @@ function drawChart() {
     sma: smas[i]
   }));
 
-  // X-Achsenbeschriftung (Datum)
-  ctx.fillStyle = "#94a3b8";
+  // X-Achse
+  ctx.fillStyle = textColor;
   ctx.font = "500 10px -apple-system, sans-serif";
 
-  // Startdatum
   ctx.textAlign = "left";
   ctx.fillText(dates[0], left, height - 8);
 
-  // Mitteldatum
   const midIndex = Math.floor(dates.length / 2);
   ctx.textAlign = "center";
   ctx.fillText(dates[midIndex], getX(midIndex), height - 8);
 
-  // Enddatum
   ctx.textAlign = "right";
   ctx.fillText(dates[dates.length - 1], width - right, height - 8);
 
-  // Fläche zwischen SPY & SMA200
+  // Flächenfärbung
   ctx.beginPath();
   prices.forEach((val, i) => {
     if (i === 0) ctx.moveTo(getX(i), getY(val));
@@ -426,11 +497,15 @@ function drawChart() {
     ctx.lineTo(getX(i), getY(smas[i]));
   }
   ctx.closePath();
-  ctx.fillStyle = prices[prices.length - 1] >= smas[smas.length - 1] ? "rgba(16, 185, 129, 0.08)" : "rgba(239, 68, 68, 0.08)";
+  
+  const isPositive = prices[prices.length - 1] >= smas[smas.length - 1];
+  ctx.fillStyle = isPositive 
+    ? (isDark ? "rgba(52, 211, 153, 0.12)" : "rgba(16, 185, 129, 0.08)") 
+    : (isDark ? "rgba(248, 113, 113, 0.12)" : "rgba(239, 68, 68, 0.08)");
   ctx.fill();
 
-  // SMA200 Linie (Blau)
-  ctx.strokeStyle = "#2563eb";
+  // SMA200 Linie
+  ctx.strokeStyle = smaColor;
   ctx.lineWidth = 2;
   ctx.beginPath();
   smas.forEach((val, i) => {
@@ -439,8 +514,8 @@ function drawChart() {
   });
   ctx.stroke();
 
-  // SPY Linie (Dunkel)
-  ctx.strokeStyle = "#0f172a";
+  // SPY Linie
+  ctx.strokeStyle = spyColor;
   ctx.lineWidth = 2.5;
   ctx.beginPath();
   prices.forEach((val, i) => {
@@ -450,7 +525,7 @@ function drawChart() {
   ctx.stroke();
 }
 
-// Tooltip / Hover Steuerung
+// Hover Tooltip
 const canvas = document.getElementById("chart");
 const tooltip = document.getElementById("tooltip");
 
@@ -460,7 +535,6 @@ canvas.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
   const mouseX = e.clientX - rect.left;
 
-  // Nächstgelegenen Punkt finden
   let closest = chartPoints[0];
   let minDiff = Math.abs(mouseX - closest.x);
 
