@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Finance & SMA200 Dashboard</title>
+<title>Finanztools & SMA200</title>
 
 <style>
 /* Base Light Theme */
@@ -360,6 +360,50 @@ canvas {
   margin-top: 4px;
 }
 
+/* Fear & Greed Styles */
+.fg-gauge-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.fg-status-title {
+  font-size: 28px;
+  font-weight: 800;
+  margin-top: -30px;
+  text-align: center;
+}
+
+.fg-score-val {
+  font-size: 48px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.fg-scale-info {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.fg-badge {
+  padding: 8px 4px;
+  border-radius: 8px;
+  color: #fff;
+}
+
+.fg-e-fear { background: #ef4444; }
+.fg-fear { background: #f97316; }
+.fg-neutral { background: #eab308; }
+.fg-greed { background: #84cc16; }
+.fg-e-greed { background: #10b981; }
+
 footer {
   text-align: center;
   margin-top: 32px;
@@ -410,6 +454,7 @@ footer {
   }
   .nav-list {
     flex-direction: row;
+    overflow-x: auto;
   }
   .calc-results {
     grid-template-columns: 1fr;
@@ -430,6 +475,9 @@ footer {
       </li>
       <li class="nav-item" onclick="switchPage('calculator')">
         🧮 Zinseszinsrechner
+      </li>
+      <li class="nav-item" onclick="switchPage('feargreed')">
+        😱 Fear & Greed
       </li>
     </ul>
   </div>
@@ -534,7 +582,6 @@ footer {
       </div>
     </div>
 
-    <!-- SÄULENDIAGRAMM CARD -->
     <div class="card">
       <div class="chart-header">
         <div class="label" style="margin: 0;">Entwicklung über Zeit</div>
@@ -552,19 +599,55 @@ footer {
     </div>
   </section>
 
+  <!-- PAGE 3: FEAR & GREED INDEX -->
+  <section id="page-feargreed" class="page-view">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <h1>Fear & Greed Index</h1>
+      <button class="reload-btn" onclick="fetchFearAndGreed()" style="margin: 0;">🔄 Aktualisieren</button>
+    </div>
+
+    <div class="card">
+      <div class="fg-gauge-container">
+        <canvas id="fg-gauge" width="340" height="200"></canvas>
+        <div class="fg-score-val" id="fg-score">--</div>
+        <div class="fg-status-title" id="fg-text">LADE LIVE-DATEN...</div>
+      </div>
+
+      <div class="fg-scale-info">
+        <div class="fg-badge fg-e-fear">Extrem Angst<br>0–24</div>
+        <div class="fg-badge fg-fear">Angst<br>25–44</div>
+        <div class="fg-badge fg-neutral">Neutral<br>45–55</div>
+        <div class="fg-badge fg-greed">Gier<br>56–75</div>
+        <div class="fg-badge fg-e-greed">Extrem Gier<br>76–100</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label">Was bedeutet dieser Index?</div>
+      <p style="font-size: 14px; margin-top: 8px; color: var(--text-muted);">
+        Der <strong>Fear & Greed Index</strong> misst die aktuelle Anlegerstimmung am Markt. 
+        <br><br>
+        • <strong>Extreme Angst (0–24):</strong> Anleger sind sehr besorgt. Dies wird von Value-Investoren oft als mögliches Kauf-Signal gesehen ("Buy when there's blood in the streets").
+        <br>
+        • <strong>Extreme Gier (76–100):</strong> Der Markt könnte überhitzt sein. Es herrscht Euphorie, was ein erhöhtes Korrekturrisiko signalisiert.
+      </p>
+    </div>
+  </section>
+
 </main>
 
 <script>
 const API_KEY = "700BBS7NX2KASU5";
 const SYMBOL = "SPY";
-const CACHE_KEY = "sma200_dashboard_cache_v7";
+const CACHE_KEY = "sma200_dashboard_cache_v9";
 const THEME_KEY = "sma200_dashboard_theme";
 
 let savedPriceData = null;
 let savedSmaData = null;
 let currentTimeframe = 100;
 let chartPoints = [];
-let calcBars = []; // Für Rechner Hover
+let calcBars = [];
+let currentFgScore = 50;
 
 // =====================================================
 // NAVIGATION (SPA)
@@ -583,6 +666,8 @@ function switchPage(pageId) {
     setTimeout(drawChart, 50);
   } else if (pageId === 'calculator') {
     calculateCompoundInterest();
+  } else if (pageId === 'feargreed') {
+    fetchFearAndGreed();
   }
 }
 
@@ -602,13 +687,106 @@ function toggleTheme() {
   updateThemeButton(current);
   drawChart();
   drawCalcChart();
+  drawFgGauge(currentFgScore);
 }
 
 function updateThemeButton(theme) {
-  document.getElementById("themeToggle").textContent = theme === "dark" ? "☀️️ Light" : "🌙 Dark";
+  document.getElementById("themeToggle").textContent = theme === "dark" ? "☀️ Light" : "🌙 Dark";
 }
 
 initTheme();
+
+// =====================================================
+// FEAR & GREED LIVE-ABRUF
+// =====================================================
+async function fetchFearAndGreed() {
+  const textEl = document.getElementById('fg-text');
+  textEl.textContent = "LADE LIVE-DATEN...";
+
+  try {
+    const response = await fetch("https://api.alternative.me/fng/?limit=1", { cache: "no-store" });
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.data && data.data[0]) {
+        currentFgScore = parseInt(data.data[0].value);
+        updateFgGauge(currentFgScore);
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn("Live Fear & Greed Abruf fehlgeschlagen.", e);
+  }
+
+  // Fallback
+  updateFgGauge(currentFgScore);
+}
+
+function updateFgGauge(score) {
+  document.getElementById('fg-score').textContent = score;
+
+  let text = "NEUTRAL";
+  let color = "#eab308";
+
+  if (score <= 24) { text = "EXTREME ANGST"; color = "#ef4444"; }
+  else if (score <= 44) { text = "ANGST"; color = "#f97316"; }
+  else if (score <= 55) { text = "NEUTRAL"; color = "#eab308"; }
+  else if (score <= 75) { text = "GIER"; color = "#84cc16"; }
+  else { text = "EXTREME GIER"; color = "#10b981"; }
+
+  const textEl = document.getElementById('fg-text');
+  textEl.textContent = text;
+  textEl.style.color = color;
+
+  drawFgGauge(score);
+}
+
+function drawFgGauge(score) {
+  const canvas = document.getElementById('fg-gauge');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const cx = canvas.width / 2;
+  const cy = canvas.height - 20;
+  const radius = 130;
+
+  const segments = [
+    { start: Math.PI, end: Math.PI * 1.2, color: "#ef4444" },
+    { start: Math.PI * 1.2, end: Math.PI * 1.4, color: "#f97316" },
+    { start: Math.PI * 1.4, end: Math.PI * 1.6, color: "#eab308" },
+    { start: Math.PI * 1.6, end: Math.PI * 1.8, color: "#84cc16" },
+    { start: Math.PI * 1.8, end: Math.PI * 2.0, color: "#10b981" }
+  ];
+
+  segments.forEach(seg => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, seg.start, seg.end);
+    ctx.lineWidth = 24;
+    ctx.strokeStyle = seg.color;
+    ctx.stroke();
+  });
+
+  const angle = Math.PI + (score / 100) * Math.PI;
+  const needleLen = radius - 15;
+
+  const nx = cx + needleLen * Math.cos(angle);
+  const ny = cy + needleLen * Math.sin(angle);
+
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(nx, ny);
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = isDark ? "#ffffff" : "#0f172a";
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+  ctx.fillStyle = isDark ? "#ffffff" : "#0f172a";
+  ctx.fill();
+}
 
 // =====================================================
 // ZINSESZINS BERECHNUNG & SÄULENDIAGRAMM
@@ -678,7 +856,6 @@ function drawCalcChart() {
   const cWidth = width - left - right;
   const cHeight = height - top - bottom;
 
-  // Y-Achse (Hilfslinien & Beschriftung)
   ctx.strokeStyle = gridColor;
   ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
@@ -695,7 +872,6 @@ function drawCalcChart() {
     ctx.fillText(formatK(val), left - 8, y + 4);
   }
 
-  // Säulen zeichnen
   const barCount = yearlyData.length;
   const barGroupWidth = cWidth / barCount;
   const barWidth = Math.max(Math.min(barGroupWidth * 0.65, 20), 2);
@@ -712,15 +888,12 @@ function drawCalcChart() {
     const yInvested = top + cHeight - investedHeight;
     const yInterest = yInvested - interestHeight;
 
-    // Blaue Säule (Einzahlungen)
     ctx.fillStyle = depositsColor;
     ctx.fillRect(x, yInvested, barWidth, investedHeight);
 
-    // Orange Säule (Zinsen gestapelt oben drauf)
     ctx.fillStyle = interestColor;
     ctx.fillRect(x, yInterest, barWidth, interestHeight);
 
-    // Daten für Hover-Tooltip speichern
     calcBars.push({
       x: x,
       width: barWidth,
@@ -731,7 +904,6 @@ function drawCalcChart() {
       total: d.total
     });
 
-    // X-Achse (Jahre beschriften)
     const step = Math.ceil(barCount / 10);
     if (d.year === 1 || d.year === barCount || d.year % step === 0) {
       ctx.fillStyle = textColor;
@@ -742,7 +914,7 @@ function drawCalcChart() {
   });
 }
 
-// Tooltip für Zinseszinsrechner
+// Tooltip
 const calcCanvas = document.getElementById("calc-chart");
 const calcTooltip = document.getElementById("calc-tooltip");
 
@@ -1075,6 +1247,7 @@ loadData();
 window.addEventListener("resize", () => {
   drawChart();
   drawCalcChart();
+  drawFgGauge(currentFgScore);
 });
 </script>
 
