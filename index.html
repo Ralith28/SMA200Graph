@@ -477,7 +477,7 @@ footer {
         🧮 Zinseszinsrechner
       </li>
       <li class="nav-item" onclick="switchPage('feargreed')">
-        😱 Fear & Greed
+        😱 Fear & Greed (Krypto)
       </li>
     </ul>
   </div>
@@ -599,10 +599,10 @@ footer {
     </div>
   </section>
 
-  <!-- PAGE 3: FEAR & GREED INDEX -->
+  <!-- PAGE 3: FEAR & GREED INDEX (KRYPTO) -->
   <section id="page-feargreed" class="page-view">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-      <h1>Fear & Greed Index</h1>
+      <h1>Crypto Fear & Greed Index</h1>
       <button class="reload-btn" onclick="fetchFearAndGreed()" style="margin: 0;">🔄 Aktualisieren</button>
     </div>
 
@@ -625,11 +625,11 @@ footer {
     <div class="card">
       <div class="label">Was bedeutet dieser Index?</div>
       <p style="font-size: 14px; margin-top: 8px; color: var(--text-muted);">
-        Der <strong>Fear & Greed Index</strong> misst die aktuelle Anlegerstimmung am Markt. 
+        Dieser <strong>Crypto Fear & Greed Index</strong> (von Alternative.me) misst die emotionale Stimmung am <strong>Kryptomarkt (Bitcoin & Altcoins)</strong>.
         <br><br>
-        • <strong>Extreme Angst (0–24):</strong> Anleger sind sehr besorgt. Dies wird von Value-Investoren oft als mögliches Kauf-Signal gesehen ("Buy when there's blood in the streets").
+        • <strong>Extreme Angst (0–24):</strong> Anleger im Kryptomarkt sind panisch oder stark verunsichert. Oft als antizyklische Kaufchance interpretiert.
         <br>
-        • <strong>Extreme Gier (76–100):</strong> Der Markt könnte überhitzt sein. Es herrscht Euphorie, was ein erhöhtes Korrekturrisiko signalisiert.
+        • <strong>Extreme Gier (76–100):</strong> Der Markt ist voller FOMO (Fear Of Missing Out) und Euphorie, was ein erhöhtes Risiko für baldige Korrekturen signalisiert.
       </p>
     </div>
   </section>
@@ -639,7 +639,7 @@ footer {
 <script>
 const API_KEY = "700BBS7NX2KASU5";
 const SYMBOL = "SPY";
-const CACHE_KEY = "sma200_dashboard_cache_v9";
+const CACHE_KEY = "sma200_dashboard_cache_v10";
 const THEME_KEY = "sma200_dashboard_theme";
 
 let savedPriceData = null;
@@ -697,11 +697,11 @@ function updateThemeButton(theme) {
 initTheme();
 
 // =====================================================
-// FEAR & GREED LIVE-ABRUF
+// CRYPTO FEAR & GREED LIVE-ABRUF
 // =====================================================
 async function fetchFearAndGreed() {
   const textEl = document.getElementById('fg-text');
-  textEl.textContent = "LADE LIVE-DATEN...";
+  textEl.textContent = "LADE KRYPTO-DATEN...";
 
   try {
     const response = await fetch("https://api.alternative.me/fng/?limit=1", { cache: "no-store" });
@@ -714,10 +714,9 @@ async function fetchFearAndGreed() {
       }
     }
   } catch (e) {
-    console.warn("Live Fear & Greed Abruf fehlgeschlagen.", e);
+    console.warn("Live Crypto Fear & Greed Abruf fehlgeschlagen.", e);
   }
 
-  // Fallback
   updateFgGauge(currentFgScore);
 }
 
@@ -914,7 +913,7 @@ function drawCalcChart() {
   });
 }
 
-// Tooltip
+// Tooltip für Zinseszinsrechner
 const calcCanvas = document.getElementById("calc-chart");
 const calcTooltip = document.getElementById("calc-tooltip");
 
