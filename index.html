@@ -4,531 +4,512 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>SMA200 Dashboard</title>
 
 <style>
+:root {
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --primary: #2563eb;
+  --green: #10b981;
+  --green-bg: #ecfdf5;
+  --red: #ef4444;
+  --red-bg: #fef2f2;
+  --radius: 16px;
+}
 
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f3f4f6;
-  color: #111827;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text-main);
+  line-height: 1.5;
+  padding: 24px 16px;
 }
 
 .container {
-  max-width: 700px;
-  margin: auto;
-  padding: 20px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* Header & Signal Status Banner */
+.status-banner {
+  text-align: center;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 0.5px;
+  margin-bottom: 24px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.status-banner.invested {
+  background: var(--green-bg);
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.status-banner.out {
+  background: var(--red-bg);
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.status-banner.neutral {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid var(--border);
+}
+
+header {
+  text-align: center;
+  margin-bottom: 24px;
 }
 
 h1 {
-  text-align: center;
-  margin: 10px 0 25px;
-  font-size: 34px;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+/* Grid Layout für Metriken */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .card {
-  background: white;
-  border-radius: 20px;
-  padding: 24px;
-  margin-bottom: 16px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 20px;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.card.full-width {
+  grid-column: span 2;
 }
 
 .label {
-  color: #6b7280;
-  font-size: 17px;
-  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
 }
 
 .value {
-  font-size: 38px;
-  font-weight: bold;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -1px;
 }
 
 .small-value {
-  font-size: 28px;
-  font-weight: bold;
+  font-size: 24px;
+  font-weight: 700;
 }
 
-.signal {
-  text-align: center;
-  font-size: 25px;
-  font-weight: bold;
-  padding: 20px;
-  border-radius: 16px;
-  margin-top: 12px;
+/* Chart Styles */
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
 }
 
-.invested {
-  background: #dcfce7;
-  color: #166534;
+.timeframe-selector {
+  display: flex;
+  gap: 6px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 8px;
 }
 
-.out {
-  background: #fee2e2;
-  color: #991b1b;
+.tf-btn {
+  border: none;
+  background: transparent;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.neutral {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-.chart-card {
-  padding-bottom: 18px;
+.tf-btn.active {
+  background: #ffffff;
+  color: var(--text-main);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .chart-wrapper {
+  position: relative;
   width: 100%;
-  overflow: hidden;
 }
 
 canvas {
   display: block;
   width: 100%;
-  height: 300px;
+  height: 280px;
 }
 
 .legend {
   display: flex;
   justify-content: center;
-  gap: 24px;
-  margin-top: 12px;
-  font-size: 14px;
-  color: #6b7280;
+  gap: 20px;
+  margin-top: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
-.legend span {
+.legend-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  display: inline-block;
 }
 
-.price-dot {
-  background: #111827;
-}
+.dot-spy { background: var(--text-main); }
+.dot-sma { background: var(--primary); }
 
-.sma-dot {
-  background: #2563eb;
-}
-
-.update {
+/* Footer & Reload */
+footer {
   text-align: center;
-  color: #6b7280;
+  margin-top: 32px;
+  color: var(--text-muted);
   font-size: 13px;
-  margin-top: 20px;
-  line-height: 1.5;
+}
+
+.reload-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-top: 12px;
+  transition: all 0.2s;
+}
+
+.reload-btn:hover {
+  background: #ffffff;
+  color: var(--text-main);
 }
 
 .error {
-  color: #991b1b;
-  font-size: 14px;
-  margin-top: 10px;
+  color: var(--red);
+  font-size: 13px;
+  margin-top: 12px;
   text-align: center;
-  word-break: break-word;
 }
-
 </style>
 </head>
-
 
 <body>
 
 <div class="container">
 
-<h1>SMA200 Dashboard</h1>
+  <header>
+    <h1>SMA200 Dashboard</h1>
+  </header>
 
-
-<div class="card">
-  <div class="label">S&P 500 / SPY</div>
-  <div class="value" id="price">...</div>
-</div>
-
-
-<div class="card">
-  <div class="label">SMA200</div>
-  <div class="small-value" id="sma">...</div>
-</div>
-
-
-<div class="card">
-  <div class="label">Abstand zum SMA200</div>
-  <div class="small-value" id="distance">...</div>
-</div>
-
-
-<div class="card">
-  <div class="label">ZahlGraf-Regel</div>
-  <div id="signal" class="signal neutral">DATEN WERDEN GELADEN</div>
-</div>
-
-
-<div class="card chart-card">
-  <div class="label">Verlauf SPY / SMA200</div>
-  <div class="chart-wrapper">
-    <canvas id="chart"></canvas>
+  <!-- Status Banner Ganz oben -->
+  <div id="signal" class="status-banner neutral">
+    DATEN WERDEN GELADEN
   </div>
-  <div class="legend">
-    <span><span class="dot price-dot"></span> SPY</span>
-    <span><span class="dot sma-dot"></span> SMA200</span>
+
+  <!-- Metriken Grid -->
+  <div class="grid">
+    <div class="card">
+      <div class="label">SPY Kurs</div>
+      <div class="value" id="price">...</div>
+    </div>
+
+    <div class="card">
+      <div class="label">SMA200</div>
+      <div class="value" id="sma">...</div>
+    </div>
+
+    <div class="card full-width">
+      <div class="label">Abstand zum SMA200</div>
+      <div class="small-value" id="distance">...</div>
+    </div>
   </div>
+
+  <!-- Chart Card -->
+  <div class="card full-width">
+    <div class="chart-header">
+      <div class="label" style="margin: 0;">Chart-Verlauf</div>
+      <div class="timeframe-selector">
+        <button class="tf-btn" onclick="setTimeframe(30)">1M</button>
+        <button class="tf-btn active" onclick="setTimeframe(100)">MAX (~3M)</button>
+      </div>
+    </div>
+
+    <div class="chart-wrapper">
+      <canvas id="chart"></canvas>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="dot dot-spy"></span> SPY Kurs</div>
+      <div class="legend-item"><span class="dot dot-sma"></span> SMA200</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div id="updated">Stand: ...</div>
+    <button class="reload-btn" onclick="forceReload()">🔄 Daten erneuern</button>
+    <div id="error" class="error"></div>
+  </footer>
+
 </div>
-
-
-<div class="update">
-  Letzte Aktualisierung:
-  <br>
-  <span id="updated">...</span>
-  <div id="error" class="error"></div>
-</div>
-
-</div>
-
 
 <script>
-
-// =====================================================
-// EINSTELLUNGEN
-// =====================================================
-
 const API_KEY = "700BBS7NX2KASU5";
 const SYMBOL = "SPY";
-const CACHE_KEY = "sma200_dashboard_cache_v2";
-
-
-// =====================================================
-// GLOBALE DATEN
-// =====================================================
+const CACHE_KEY = "sma200_dashboard_cache_v3";
 
 let savedPriceData = null;
 let savedSmaData = null;
+let currentTimeframe = 100;
 
-
-// =====================================================
-// ZAHLEN FORMATIEREN
-// =====================================================
-
-function formatNumber(value) {
-  return Number(value).toLocaleString("de-DE", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
+function formatNumber(val) {
+  return Number(val).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-
-// =====================================================
-// FEHLER ANZEIGEN
-// =====================================================
-
-function showError(message) {
-  document.getElementById("signal").textContent = "⚠️ DATENFEHLER";
-  document.getElementById("signal").className = "signal neutral";
-  document.getElementById("error").textContent = message;
+function showError(msg) {
+  const signal = document.getElementById("signal");
+  signal.textContent = "⚠️ DATENFEHLER";
+  signal.className = "status-banner neutral";
+  document.getElementById("error").textContent = msg;
 }
-
-
-// =====================================================
-// API-ANTWORT PRÜFEN
-// =====================================================
 
 function checkApiResponse(data, name) {
-  if (data["Error Message"]) {
-    throw new Error(name + ": " + data["Error Message"]);
-  }
-
-  if (data["Note"]) {
-    throw new Error(name + ": Alpha-Vantage API-Limit erreicht.");
-  }
-
-  if (data["Information"]) {
-    throw new Error(name + ": " + data["Information"]);
-  }
+  if (data["Error Message"]) throw new Error(name + ": " + data["Error Message"]);
+  if (data["Note"]) throw new Error(name + ": API-Limit erreicht.");
+  if (data["Information"]) throw new Error(name + ": " + data["Information"]);
 }
 
-
-// =====================================================
-// CHART
-// =====================================================
+function setTimeframe(days) {
+  currentTimeframe = days;
+  document.querySelectorAll(".tf-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.textContent.includes(days === 30 ? "1M" : "MAX"));
+  });
+  drawChart();
+}
 
 function drawChart() {
-  if (!savedPriceData || !savedSmaData) {
-    return;
-  }
+  if (!savedPriceData || !savedSmaData) return;
 
   const canvas = document.getElementById("chart");
   const ctx = canvas.getContext("2d");
   const width = canvas.clientWidth;
-  const height = 300;
+  const height = 280;
 
-  if (width <= 0) {
-    return;
-  }
+  if (width <= 0) return;
 
   const ratio = window.devicePixelRatio || 1;
   canvas.width = width * ratio;
   canvas.height = height * ratio;
-
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
   const dates = Object.keys(savedSmaData)
     .filter(date => savedPriceData[date])
     .sort()
-    .slice(-1000);
+    .slice(-currentTimeframe);
 
-  if (dates.length < 2) {
-    return;
-  }
+  if (dates.length < 2) return;
 
-  const prices = dates.map(date => Number(savedPriceData[date]["4. close"]));
-  const smas = dates.map(date => Number(savedSmaData[date]["SMA"]));
-  const values = prices.concat(smas);
+  const prices = dates.map(d => Number(savedPriceData[d]["4. close"]));
+  const smas = dates.map(d => Number(savedSmaData[d]["SMA"]));
+  const allVals = prices.concat(smas);
 
-  let min = Math.min(...values);
-  let max = Math.max(...values);
-  const extra = (max - min) * 0.10;
+  let min = Math.min(...allVals);
+  let max = Math.max(...allVals);
+  const padding = (max - min) * 0.08;
+  min -= padding;
+  max += padding;
 
-  min -= extra;
-  max += extra;
-
-  const left = 45;
-  const right = 10;
-  const top = 15;
-  const bottom = 30;
-
-  const chartWidth = width - left - right;
-  const chartHeight = height - top - bottom;
+  const left = 45, right = 10, top = 15, bottom = 25;
+  const cWidth = width - left - right;
+  const cHeight = height - top - bottom;
 
   ctx.clearRect(0, 0, width, height);
 
-  // Hilfslinien
-  ctx.strokeStyle = "#e5e7eb";
+  // Rasterlinien
+  ctx.strokeStyle = "#f1f5f9";
   ctx.lineWidth = 1;
-
-  for (let i = 0; i <= 4; i++) {
-    const y = top + chartHeight * i / 4;
+  for (let i = 0; i <= 3; i++) {
+    const y = top + (cHeight * i) / 3;
     ctx.beginPath();
     ctx.moveTo(left, y);
     ctx.lineTo(width - right, y);
     ctx.stroke();
 
-    const value = max - (max - min) * i / 4;
-    ctx.fillStyle = "#9ca3af";
-    ctx.font = "11px Arial";
+    const val = max - ((max - min) * i) / 3;
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "500 11px -apple-system, sans-serif";
     ctx.textAlign = "right";
-    ctx.fillText(value.toFixed(0), left - 6, y + 4);
+    ctx.fillText(val.toFixed(0), left - 8, y + 4);
   }
 
-  function getX(index) {
-    return left + (index / (dates.length - 1)) * chartWidth;
-  }
+  function getX(i) { return left + (i / (dates.length - 1)) * cWidth; }
+  function getY(val) { return top + ((max - val) / (max - min)) * cHeight; }
 
-  function getY(value) {
-    return top + ((max - value) / (max - min)) * chartHeight;
-  }
-
-  // SPY Linie
-  ctx.strokeStyle = "#111827";
-  ctx.lineWidth = 2.5;
+  // Flächenfärbung zwischen SPY & SMA200
   ctx.beginPath();
-  prices.forEach((value, index) => {
-    const x = getX(index);
-    const y = getY(value);
-    if (index === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+  prices.forEach((val, i) => {
+    if (i === 0) ctx.moveTo(getX(i), getY(val));
+    else ctx.lineTo(getX(i), getY(val));
   });
-  ctx.stroke();
+  for (let i = smas.length - 1; i >= 0; i--) {
+    ctx.lineTo(getX(i), getY(smas[i]));
+  }
+  ctx.closePath();
+  ctx.fillStyle = prices[prices.length - 1] >= smas[smas.length - 1] ? "rgba(16, 185, 129, 0.08)" : "rgba(239, 68, 68, 0.08)";
+  ctx.fill();
 
-  // SMA200 Linie
+  // SMA200 Linie (Blau)
   ctx.strokeStyle = "#2563eb";
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  smas.forEach((value, index) => {
-    const x = getX(index);
-    const y = getY(value);
-    if (index === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+  smas.forEach((val, i) => {
+    if (i === 0) ctx.moveTo(getX(i), getY(val));
+    else ctx.lineTo(getX(i), getY(val));
   });
   ctx.stroke();
 
-  // Datum
-  ctx.fillStyle = "#9ca3af";
-  ctx.font = "10px Arial";
-  ctx.textAlign = "left";
-  ctx.fillText(dates[0], left, height - 8);
-
-  ctx.textAlign = "right";
-  ctx.fillText(dates[dates.length - 1], width - right, height - 8);
+  // SPY Linie (Dunkel)
+  ctx.strokeStyle = "#0f172a";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  prices.forEach((val, i) => {
+    if (i === 0) ctx.moveTo(getX(i), getY(val));
+    else ctx.lineTo(getX(i), getY(val));
+  });
+  ctx.stroke();
 }
 
-
-// =====================================================
-// DATEN LADEN (MIT LOCALSTORAGE CACHING & COMPACT DATA)
-// =====================================================
-
-async function loadData() {
+async function loadData(ignoreCache = false) {
   try {
     document.getElementById("error").textContent = "";
-    document.getElementById("signal").textContent = "DATEN WERDEN GELADEN";
-    document.getElementById("signal").className = "signal neutral";
-
     const todayStr = new Date().toISOString().split("T")[0];
-    const cachedData = localStorage.getItem(CACHE_KEY);
 
-    // 1. Prüfen, ob für HEUTE bereits gültige Daten im Cache liegen
-    if (cachedData) {
-      try {
-        const parsed = JSON.parse(cachedData);
+    if (!ignoreCache) {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
         if (parsed.cacheDate === todayStr && parsed.timeSeries && parsed.smaSeries) {
           savedPriceData = parsed.timeSeries;
           savedSmaData = parsed.smaSeries;
-
-          renderDashboard(parsed.latestDate, parsed.smaDate, parsed.isCached);
+          renderDashboard(parsed.latestDate, parsed.smaDate, true);
           return;
         }
-      } catch (e) {
-        console.warn("Ungültiger Cache wird überschrieben.", e);
       }
     }
 
-    // 2. SPY Kursdaten laden (compact = kostenlos)
-    const priceUrl =
-      "https://www.alphavantage.co/query" +
-      "?function=TIME_SERIES_DAILY" +
-      "&symbol=" + SYMBOL +
-      "&outputsize=compact" +
-      "&datatype=json" +
-      "&apikey=" + API_KEY +
-      "&_=" + Date.now();
-
-    const priceResponse = await fetch(priceUrl, { cache: "no-store" });
-    if (!priceResponse.ok) {
-      throw new Error("HTTP-Fehler SPY: " + priceResponse.status);
-    }
-
-    const priceData = await priceResponse.json();
+    // SPY Laden
+    const priceUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${SYMBOL}&outputsize=compact&datatype=json&apikey=${API_KEY}&_=${Date.now()}`;
+    const priceRes = await fetch(priceUrl, { cache: "no-store" });
+    if (!priceRes.ok) throw new Error("HTTP-Fehler SPY");
+    const priceData = await priceRes.json();
     checkApiResponse(priceData, "SPY");
 
     const timeSeries = priceData["Time Series (Daily)"];
-    if (!timeSeries) {
-      throw new Error("Keine SPY-Kursdaten erhalten.");
-    }
+    if (!timeSeries) throw new Error("Keine SPY-Kurse erhalten.");
 
-    // 1,5 Sekunden Pause, um das API Rate-Limit (1 Req/Sek) zu beachten
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(r => setTimeout(r, 1500)); // Pause fürs Rate Limit
 
-    // 3. SMA200 Daten laden (kostenlos)
-    const smaUrl =
-      "https://www.alphavantage.co/query" +
-      "?function=SMA" +
-      "&symbol=" + SYMBOL +
-      "&interval=daily" +
-      "&time_period=200" +
-      "&series_type=close" +
-      "&datatype=json" +
-      "&apikey=" + API_KEY +
-      "&_=" + Date.now();
-
-    const smaResponse = await fetch(smaUrl, { cache: "no-store" });
-    if (!smaResponse.ok) {
-      throw new Error("HTTP-Fehler SMA: " + smaResponse.status);
-    }
-
-    const smaData = await smaResponse.json();
+    // SMA Laden
+    const smaUrl = `https://www.alphavantage.co/query?function=SMA&symbol=${SYMBOL}&interval=daily&time_period=200&series_type=close&datatype=json&apikey=${API_KEY}&_=${Date.now()}`;
+    const smaRes = await fetch(smaUrl, { cache: "no-store" });
+    if (!smaRes.ok) throw new Error("HTTP-Fehler SMA");
+    const smaData = await smaRes.json();
     checkApiResponse(smaData, "SMA200");
 
     const smaSeries = smaData["Technical Analysis: SMA"];
-    if (!smaSeries) {
-      throw new Error("Keine SMA200-Daten erhalten.");
-    }
+    if (!smaSeries) throw new Error("Keine SMA200-Daten erhalten.");
 
     savedPriceData = timeSeries;
     savedSmaData = smaSeries;
 
-    const dates = Object.keys(timeSeries).sort().reverse();
-    const latestDate = dates[0];
+    const latestDate = Object.keys(timeSeries).sort().reverse()[0];
+    const smaDate = Object.keys(smaSeries).sort().reverse()[0];
 
-    const smaDates = Object.keys(smaSeries).sort().reverse();
-    const smaDate = smaDates[0];
-
-    // 4. Im LocalStorage abspeichern
-    localStorage.setItem(
-      CACHE_KEY,
-      JSON.stringify({
-        cacheDate: todayStr,
-        latestDate: latestDate,
-        smaDate: smaDate,
-        timeSeries: timeSeries,
-        smaSeries: smaSeries,
-        isCached: true
-      })
-    );
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      cacheDate: todayStr,
+      latestDate: latestDate,
+      smaDate: smaDate,
+      timeSeries: timeSeries,
+      smaSeries: smaSeries
+    }));
 
     renderDashboard(latestDate, smaDate, false);
 
-  } catch (error) {
-    console.error("Dashboard Fehler:", error);
-    showError(error.message);
+  } catch (err) {
+    showError(err.message);
   }
 }
 
-
-// =====================================================
-// DASHBOARD RENDERN
-// =====================================================
-
-function renderDashboard(latestDate, smaDate, isFromCache) {
+function renderDashboard(latestDate, smaDate, isCached) {
   const price = Number(savedPriceData[latestDate]["4. close"]);
   const sma200 = Number(savedSmaData[smaDate || latestDate]["SMA"]);
-
   const distance = ((price - sma200) / sma200) * 100;
 
-  document.getElementById("price").textContent = formatNumber(price);
-  document.getElementById("sma").textContent = formatNumber(sma200);
-  document.getElementById("distance").textContent =
-    (distance >= 0 ? "+" : "") + distance.toFixed(2) + " %";
+  document.getElementById("price").textContent = formatNumber(price) + " $";
+  document.getElementById("sma").textContent = formatNumber(sma200) + " $";
+
+  const distEl = document.getElementById("distance");
+  distEl.textContent = (distance >= 0 ? "+" : "") + distance.toFixed(2) + " %";
+  distEl.style.color = distance >= 0 ? "var(--green)" : "var(--red)";
 
   const signal = document.getElementById("signal");
   if (price >= sma200) {
-    signal.textContent = "🟢 AMUMBO: EIN";
-    signal.className = "signal invested";
+    signal.textContent = "🟢 ZAHLGRAF: INVESTIERT (AMUMBO EIN)";
+    signal.className = "status-banner invested";
   } else {
-    signal.textContent = "🔴 AMUMBO: AUS";
-    signal.className = "signal out";
+    signal.textContent = "🔴 ZAHLGRAF: CASH (AMUMBO AUS)";
+    signal.className = "status-banner out";
   }
 
   drawChart();
 
   document.getElementById("updated").textContent =
-    "Kurs: " + latestDate + " | SMA200: " + (smaDate || latestDate) + (isFromCache ? " (Cache)" : "");
+    `Stand: ${latestDate}` + (isCached ? " (Cache)" : "");
 }
 
-
-// =====================================================
-// BEIM ÖFFNEN / REFRESH LADEN
-// =====================================================
+function forceReload() {
+  localStorage.removeItem(CACHE_KEY);
+  document.getElementById("signal").textContent = "DATEN WERDEN ERNEUERT...";
+  document.getElementById("signal").className = "status-banner neutral";
+  loadData(true);
+}
 
 loadData();
-
-
-// =====================================================
-// RESIZE: NUR CHART NEU ZEICHNEN
-// =====================================================
-
 window.addEventListener("resize", drawChart);
-
 </script>
 
 </body>
