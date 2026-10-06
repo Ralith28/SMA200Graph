@@ -24,6 +24,8 @@
   --grid-line: #f1f5f9;
   --toggle-bg: #e2e8f0;
   --sidebar-width: 240px;
+  --bar-deposits: #3b82f6;
+  --bar-interest: #f97316;
 }
 
 /* Dark Theme Variables */
@@ -41,6 +43,8 @@
   --red-bg: rgba(127, 29, 29, 0.4);
   --grid-line: #334155;
   --toggle-bg: #334155;
+  --bar-deposits: #60a5fa;
+  --bar-interest: #fb923c;
 }
 
 * {
@@ -199,6 +203,7 @@ body {
   border: 1px solid var(--border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: background-color 0.3s, border-color 0.3s;
+  margin-bottom: 16px;
 }
 
 .card.full-width {
@@ -309,8 +314,10 @@ canvas {
 
 .dot-spy { background: var(--text-main); }
 .dot-sma { background: var(--primary); }
+.dot-deposits { background: var(--bar-deposits); }
+.dot-interest { background: var(--bar-interest); }
 
-/* Form Styles für den Rechner */
+/* Form Styles */
 .form-group {
   margin-bottom: 20px;
 }
@@ -320,12 +327,6 @@ canvas {
   font-weight: 600;
   font-size: 14px;
   margin-bottom: 8px;
-}
-
-.input-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 .form-control {
@@ -391,7 +392,6 @@ footer {
   text-align: center;
 }
 
-/* Mobile Responsive */
 @media (max-width: 768px) {
   body {
     flex-direction: column;
@@ -510,7 +510,7 @@ footer {
 
       <div class="form-group">
         <label>Anlagedauer (Jahre)</label>
-        <input type="number" id="calc-years" class="form-control" value="15" oninput="calculateCompoundInterest()">
+        <input type="number" id="calc-years" class="form-control" value="15" min="1" max="50" oninput="calculateCompoundInterest()">
       </div>
 
       <div class="form-group">
@@ -533,6 +533,23 @@ footer {
         </div>
       </div>
     </div>
+
+    <!-- SÄULENDIAGRAMM CARD -->
+    <div class="card">
+      <div class="chart-header">
+        <div class="label" style="margin: 0;">Entwicklung über Zeit</div>
+      </div>
+
+      <div class="chart-wrapper">
+        <canvas id="calc-chart"></canvas>
+        <div id="calc-tooltip" class="chart-tooltip"></div>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item"><span class="dot dot-deposits"></span> Einzahlungen</div>
+        <div class="legend-item"><span class="dot dot-interest"></span> Zinsen</div>
+      </div>
+    </div>
   </section>
 
 </main>
@@ -540,16 +557,17 @@ footer {
 <script>
 const API_KEY = "700BBS7NX2KASU5";
 const SYMBOL = "SPY";
-const CACHE_KEY = "sma200_dashboard_cache_v6";
+const CACHE_KEY = "sma200_dashboard_cache_v7";
 const THEME_KEY = "sma200_dashboard_theme";
 
 let savedPriceData = null;
 let savedSmaData = null;
 let currentTimeframe = 100;
 let chartPoints = [];
+let calcBars = []; // Für Rechner Hover
 
 // =====================================================
-// NAVIGATION (SINGLE PAGE APPLICATION)
+// NAVIGATION (SPA)
 // =====================================================
 function switchPage(pageId) {
   document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
@@ -569,7 +587,7 @@ function switchPage(pageId) {
 }
 
 // =====================================================
-// THEME (DARK MODE) STEUERUNG
+// THEME (DARK MODE)
 // =====================================================
 function initTheme() {
   const savedTheme = localStorage.getItem(THEME_KEY) || "light";
@@ -583,39 +601,187 @@ function toggleTheme() {
   localStorage.setItem(THEME_KEY, current);
   updateThemeButton(current);
   drawChart();
+  drawCalcChart();
 }
 
 function updateThemeButton(theme) {
-  document.getElementById("themeToggle").textContent = theme === "dark" ? "☀️ Light" : "🌙 Dark";
+  document.getElementById("themeToggle").textContent = theme === "dark" ? "☀️️ Light" : "🌙 Dark";
 }
 
 initTheme();
 
 // =====================================================
-// ZINSESZINS BERECHNUNG
+// ZINSESZINS BERECHNUNG & SÄULENDIAGRAMM
 // =====================================================
+let yearlyData = [];
+
 function calculateCompoundInterest() {
   const start = parseFloat(document.getElementById('calc-start').value) || 0;
   const monthly = parseFloat(document.getElementById('calc-monthly').value) || 0;
-  const years = parseInt(document.getElementById('calc-years').value) || 0;
+  const years = Math.min(Math.max(parseInt(document.getElementById('calc-years').value) || 1, 1), 50);
   const ratePct = parseFloat(document.getElementById('calc-rate').value) || 0;
 
   const r = ratePct / 100 / 12;
-  const months = years * 12;
+  yearlyData = [];
 
-  let total = start;
-  let invested = start;
+  let currentTotal = start;
+  let currentInvested = start;
 
-  for (let i = 0; i < months; i++) {
-    total = (total + monthly) * (1 + r);
-    invested += monthly;
+  for (let y = 1; y <= years; y++) {
+    for (let m = 0; m < 12; m++) {
+      currentTotal = (currentTotal + monthly) * (1 + r);
+      currentInvested += monthly;
+    }
+    const interest = currentTotal - currentInvested;
+    yearlyData.push({
+      year: y,
+      invested: currentInvested,
+      interest: interest > 0 ? interest : 0,
+      total: currentTotal
+    });
   }
 
-  const interest = total - invested;
+  const finalData = yearlyData[yearlyData.length - 1] || { total: start, invested: start, interest: 0 };
 
-  document.getElementById('res-total').textContent = formatCurrency(total);
-  document.getElementById('res-invested').textContent = formatCurrency(invested);
-  document.getElementById('res-interest').textContent = formatCurrency(interest);
+  document.getElementById('res-total').textContent = formatCurrency(finalData.total);
+  document.getElementById('res-invested').textContent = formatCurrency(finalData.invested);
+  document.getElementById('res-interest').textContent = formatCurrency(finalData.interest);
+
+  drawCalcChart();
+}
+
+function drawCalcChart() {
+  if (!yearlyData.length) return;
+
+  const canvas = document.getElementById("calc-chart");
+  const ctx = canvas.getContext("2d");
+  const width = canvas.clientWidth;
+  const height = 280;
+
+  if (width <= 0) return;
+
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = width * ratio;
+  canvas.height = height * ratio;
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+  ctx.clearRect(0, 0, width, height);
+
+  const style = getComputedStyle(document.body);
+  const gridColor = style.getPropertyValue("--grid-line").trim();
+  const textColor = style.getPropertyValue("--text-muted").trim();
+  const depositsColor = style.getPropertyValue("--bar-deposits").trim();
+  const interestColor = style.getPropertyValue("--bar-interest").trim();
+
+  const maxTotal = yearlyData[yearlyData.length - 1].total;
+  const left = 55, right = 15, top = 20, bottom = 35;
+  const cWidth = width - left - right;
+  const cHeight = height - top - bottom;
+
+  // Y-Achse (Hilfslinien & Beschriftung)
+  ctx.strokeStyle = gridColor;
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = top + (cHeight * i) / 4;
+    ctx.beginPath();
+    ctx.moveTo(left, y);
+    ctx.lineTo(width - right, y);
+    ctx.stroke();
+
+    const val = maxTotal - (maxTotal * i) / 4;
+    ctx.fillStyle = textColor;
+    ctx.font = "500 11px -apple-system, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(formatK(val), left - 8, y + 4);
+  }
+
+  // Säulen zeichnen
+  const barCount = yearlyData.length;
+  const barGroupWidth = cWidth / barCount;
+  const barWidth = Math.max(Math.min(barGroupWidth * 0.65, 20), 2);
+
+  calcBars = [];
+
+  yearlyData.forEach((d, i) => {
+    const centerX = left + (i + 0.5) * barGroupWidth;
+    const x = centerX - barWidth / 2;
+
+    const investedHeight = (d.invested / maxTotal) * cHeight;
+    const interestHeight = (d.interest / maxTotal) * cHeight;
+
+    const yInvested = top + cHeight - investedHeight;
+    const yInterest = yInvested - interestHeight;
+
+    // Blaue Säule (Einzahlungen)
+    ctx.fillStyle = depositsColor;
+    ctx.fillRect(x, yInvested, barWidth, investedHeight);
+
+    // Orange Säule (Zinsen gestapelt oben drauf)
+    ctx.fillStyle = interestColor;
+    ctx.fillRect(x, yInterest, barWidth, interestHeight);
+
+    // Daten für Hover-Tooltip speichern
+    calcBars.push({
+      x: x,
+      width: barWidth,
+      centerX: centerX,
+      year: d.year,
+      invested: d.invested,
+      interest: d.interest,
+      total: d.total
+    });
+
+    // X-Achse (Jahre beschriften)
+    const step = Math.ceil(barCount / 10);
+    if (d.year === 1 || d.year === barCount || d.year % step === 0) {
+      ctx.fillStyle = textColor;
+      ctx.font = "500 10px -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(d.year, centerX, height - 10);
+    }
+  });
+}
+
+// Tooltip für Zinseszinsrechner
+const calcCanvas = document.getElementById("calc-chart");
+const calcTooltip = document.getElementById("calc-tooltip");
+
+calcCanvas.addEventListener("mousemove", (e) => {
+  if (!calcBars.length) return;
+
+  const rect = calcCanvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+
+  let closest = calcBars[0];
+  let minDiff = Math.abs(mouseX - closest.centerX);
+
+  for (let i = 1; i < calcBars.length; i++) {
+    const diff = Math.abs(mouseX - calcBars[i].centerX);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = calcBars[i];
+    }
+  }
+
+  calcTooltip.style.display = "block";
+  calcTooltip.style.left = closest.centerX + "px";
+  calcTooltip.style.top = "40px";
+  calcTooltip.innerHTML = `
+    <strong>Jahr ${closest.year}</strong><br>
+    Eingezahlt: ${formatCurrency(closest.invested)}<br>
+    Zinsen: ${formatCurrency(closest.interest)}<br>
+    <strong>Gesamt: ${formatCurrency(closest.total)}</strong>
+  `;
+});
+
+calcCanvas.addEventListener("mouseleave", () => {
+  calcTooltip.style.display = "none";
+});
+
+function formatK(val) {
+  if (val >= 1000000) return (val / 1000000).toFixed(1) + " Mio. €";
+  if (val >= 1000) return (val / 1000).toFixed(0) + " Tsd. €";
+  return val.toFixed(0) + " €";
 }
 
 function formatCurrency(val) {
@@ -647,6 +813,9 @@ function setTimeframe(days) {
   drawChart();
 }
 
+// =====================================================
+// CHART DASHBOARD (SMA200)
+// =====================================================
 function drawChart() {
   if (!savedPriceData || !savedSmaData) return;
 
@@ -903,7 +1072,10 @@ function forceReload() {
 }
 
 loadData();
-window.addEventListener("resize", drawChart);
+window.addEventListener("resize", () => {
+  drawChart();
+  drawCalcChart();
+});
 </script>
 
 </body>
