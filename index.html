@@ -40,7 +40,6 @@ body {
   margin: 0 auto;
 }
 
-/* Header & Signal Status Banner */
 .status-banner {
   text-align: center;
   padding: 16px 20px;
@@ -82,7 +81,6 @@ h1 {
   letter-spacing: -0.5px;
 }
 
-/* Grid Layout für Metriken */
 .grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -122,7 +120,6 @@ h1 {
   font-weight: 700;
 }
 
-/* Chart Styles */
 .chart-header {
   display: flex;
   justify-content: space-between;
@@ -165,6 +162,23 @@ canvas {
   display: block;
   width: 100%;
   height: 280px;
+  cursor: crosshair;
+}
+
+/* Tooltip Styling */
+.chart-tooltip {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+  background: rgba(15, 23, 42, 0.9);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 10;
+  transform: translate(-50%, -110%);
+  white-space: nowrap;
 }
 
 .legend {
@@ -192,7 +206,6 @@ canvas {
 .dot-spy { background: var(--text-main); }
 .dot-sma { background: var(--primary); }
 
-/* Footer & Reload */
 footer {
   text-align: center;
   margin-top: 32px;
@@ -235,12 +248,10 @@ footer {
     <h1>SMA200 Dashboard</h1>
   </header>
 
-  <!-- Status Banner Ganz oben -->
   <div id="signal" class="status-banner neutral">
     DATEN WERDEN GELADEN
   </div>
 
-  <!-- Metriken Grid -->
   <div class="grid">
     <div class="card">
       <div class="label">SPY Kurs</div>
@@ -258,7 +269,6 @@ footer {
     </div>
   </div>
 
-  <!-- Chart Card -->
   <div class="card full-width">
     <div class="chart-header">
       <div class="label" style="margin: 0;">Chart-Verlauf</div>
@@ -270,6 +280,7 @@ footer {
 
     <div class="chart-wrapper">
       <canvas id="chart"></canvas>
+      <div id="tooltip" class="chart-tooltip"></div>
     </div>
 
     <div class="legend">
@@ -278,7 +289,6 @@ footer {
     </div>
   </div>
 
-  <!-- Footer -->
   <footer>
     <div id="updated">Stand: ...</div>
     <button class="reload-btn" onclick="forceReload()">🔄 Daten erneuern</button>
@@ -290,11 +300,12 @@ footer {
 <script>
 const API_KEY = "700BBS7NX2KASU5";
 const SYMBOL = "SPY";
-const CACHE_KEY = "sma200_dashboard_cache_v3";
+const CACHE_KEY = "sma200_dashboard_cache_v4";
 
 let savedPriceData = null;
 let savedSmaData = null;
 let currentTimeframe = 100;
+let chartPoints = []; // Für Hover-Erkennung
 
 function formatNumber(val) {
   return Number(val).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -353,13 +364,13 @@ function drawChart() {
   min -= padding;
   max += padding;
 
-  const left = 45, right = 10, top = 15, bottom = 25;
+  const left = 45, right = 10, top = 15, bottom = 35;
   const cWidth = width - left - right;
   const cHeight = height - top - bottom;
 
   ctx.clearRect(0, 0, width, height);
 
-  // Rasterlinien
+  // Y-Achse (Hilfslinien & Zahlen)
   ctx.strokeStyle = "#f1f5f9";
   ctx.lineWidth = 1;
   for (let i = 0; i <= 3; i++) {
@@ -379,7 +390,33 @@ function drawChart() {
   function getX(i) { return left + (i / (dates.length - 1)) * cWidth; }
   function getY(val) { return top + ((max - val) / (max - min)) * cHeight; }
 
-  // Flächenfärbung zwischen SPY & SMA200
+  // Punkte für Hover-Event speichern
+  chartPoints = dates.map((d, i) => ({
+    x: getX(i),
+    yPrice: getY(prices[i]),
+    date: d,
+    price: prices[i],
+    sma: smas[i]
+  }));
+
+  // X-Achsenbeschriftung (Datum)
+  ctx.fillStyle = "#94a3b8";
+  ctx.font = "500 10px -apple-system, sans-serif";
+
+  // Startdatum
+  ctx.textAlign = "left";
+  ctx.fillText(dates[0], left, height - 8);
+
+  // Mitteldatum
+  const midIndex = Math.floor(dates.length / 2);
+  ctx.textAlign = "center";
+  ctx.fillText(dates[midIndex], getX(midIndex), height - 8);
+
+  // Enddatum
+  ctx.textAlign = "right";
+  ctx.fillText(dates[dates.length - 1], width - right, height - 8);
+
+  // Fläche zwischen SPY & SMA200
   ctx.beginPath();
   prices.forEach((val, i) => {
     if (i === 0) ctx.moveTo(getX(i), getY(val));
@@ -413,6 +450,45 @@ function drawChart() {
   ctx.stroke();
 }
 
+// Tooltip / Hover Steuerung
+const canvas = document.getElementById("chart");
+const tooltip = document.getElementById("tooltip");
+
+canvas.addEventListener("mousemove", (e) => {
+  if (!chartPoints.length) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+
+  // Nächstgelegenen Punkt finden
+  let closest = chartPoints[0];
+  let minDiff = Math.abs(mouseX - closest.x);
+
+  for (let i = 1; i < chartPoints.length; i++) {
+    const diff = Math.abs(mouseX - chartPoints[i].x);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = chartPoints[i];
+    }
+  }
+
+  const diffPct = ((closest.price - closest.sma) / closest.sma) * 100;
+
+  tooltip.style.display = "block";
+  tooltip.style.left = closest.x + "px";
+  tooltip.style.top = closest.yPrice + "px";
+  tooltip.innerHTML = `
+    <strong>${closest.date}</strong><br>
+    SPY: $${formatNumber(closest.price)}<br>
+    SMA200: $${formatNumber(closest.sma)}<br>
+    Abstand: ${diffPct >= 0 ? '+' : ''}${diffPct.toFixed(2)}%
+  `;
+});
+
+canvas.addEventListener("mouseleave", () => {
+  tooltip.style.display = "none";
+});
+
 async function loadData(ignoreCache = false) {
   try {
     document.getElementById("error").textContent = "";
@@ -431,7 +507,6 @@ async function loadData(ignoreCache = false) {
       }
     }
 
-    // SPY Laden
     const priceUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${SYMBOL}&outputsize=compact&datatype=json&apikey=${API_KEY}&_=${Date.now()}`;
     const priceRes = await fetch(priceUrl, { cache: "no-store" });
     if (!priceRes.ok) throw new Error("HTTP-Fehler SPY");
@@ -441,9 +516,8 @@ async function loadData(ignoreCache = false) {
     const timeSeries = priceData["Time Series (Daily)"];
     if (!timeSeries) throw new Error("Keine SPY-Kurse erhalten.");
 
-    await new Promise(r => setTimeout(r, 1500)); // Pause fürs Rate Limit
+    await new Promise(r => setTimeout(r, 1500));
 
-    // SMA Laden
     const smaUrl = `https://www.alphavantage.co/query?function=SMA&symbol=${SYMBOL}&interval=daily&time_period=200&series_type=close&datatype=json&apikey=${API_KEY}&_=${Date.now()}`;
     const smaRes = await fetch(smaUrl, { cache: "no-store" });
     if (!smaRes.ok) throw new Error("HTTP-Fehler SMA");
