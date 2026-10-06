@@ -206,7 +206,7 @@ canvas {
 
 const API_KEY = "700BBS7NX2KASU5";
 const SYMBOL = "SPY";
-const CACHE_KEY = "sma200_dashboard_cache_v1";
+const CACHE_KEY = "sma200_dashboard_cache_v2";
 
 
 // =====================================================
@@ -375,7 +375,7 @@ function drawChart() {
 
 
 // =====================================================
-// DATEN LADEN (MIT LOCALSTORAGE CACHING)
+// DATEN LADEN (MIT LOCALSTORAGE CACHING & COMPACT DATA)
 // =====================================================
 
 async function loadData() {
@@ -395,27 +395,27 @@ async function loadData() {
           savedPriceData = parsed.timeSeries;
           savedSmaData = parsed.smaSeries;
 
-          renderDashboard(parsed.latestDate, parsed.isCached);
-          return; // Ende, da Daten aus dem Cache verwendet wurden
+          renderDashboard(parsed.latestDate, parsed.smaDate, parsed.isCached);
+          return;
         }
       } catch (e) {
         console.warn("Ungültiger Cache wird überschrieben.", e);
       }
     }
 
-    // 2. Keine aktuellen Daten im Cache: Nur EINE API-Anfrage stellen (TIME_SERIES_DAILY)
+    // 2. SPY Kursdaten laden (compact = kostenlos)
     const priceUrl =
       "https://www.alphavantage.co/query" +
       "?function=TIME_SERIES_DAILY" +
       "&symbol=" + SYMBOL +
-      "&outputsize=full" +
+      "&outputsize=compact" +
       "&datatype=json" +
       "&apikey=" + API_KEY +
       "&_=" + Date.now();
 
     const priceResponse = await fetch(priceUrl, { cache: "no-store" });
     if (!priceResponse.ok) {
-      throw new Error("HTTP-Fehler: " + priceResponse.status);
+      throw new Error("HTTP-Fehler SPY: " + priceResponse.status);
     }
 
     const priceData = await priceResponse.json();
@@ -423,44 +423,60 @@ async function loadData() {
 
     const timeSeries = priceData["Time Series (Daily)"];
     if (!timeSeries) {
-      throw new Error("Keine Kursdaten erhalten.");
+      throw new Error("Keine SPY-Kursdaten erhalten.");
     }
 
-    const sortedDates = Object.keys(timeSeries).sort();
-    if (sortedDates.length < 200) {
-      throw new Error("Nicht genügend Kurshistorie für SMA200.");
+    // 1,5 Sekunden Pause, um das API Rate-Limit (1 Req/Sek) zu beachten
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // 3. SMA200 Daten laden (kostenlos)
+    const smaUrl =
+      "https://www.alphavantage.co/query" +
+      "?function=SMA" +
+      "&symbol=" + SYMBOL +
+      "&interval=daily" +
+      "&time_period=200" +
+      "&series_type=close" +
+      "&datatype=json" +
+      "&apikey=" + API_KEY +
+      "&_=" + Date.now();
+
+    const smaResponse = await fetch(smaUrl, { cache: "no-store" });
+    if (!smaResponse.ok) {
+      throw new Error("HTTP-Fehler SMA: " + smaResponse.status);
     }
 
-    // 3. SMA200 im Browser berechnen
-    const calculatedSma = {};
-    for (let i = 199; i < sortedDates.length; i++) {
-      let sum = 0;
-      for (let j = i - 199; j <= i; j++) {
-        sum += Number(timeSeries[sortedDates[j]]["4. close"]);
-      }
-      calculatedSma[sortedDates[j - 0]] = {
-        SMA: (sum / 200).toString()
-      };
+    const smaData = await smaResponse.json();
+    checkApiResponse(smaData, "SMA200");
+
+    const smaSeries = smaData["Technical Analysis: SMA"];
+    if (!smaSeries) {
+      throw new Error("Keine SMA200-Daten erhalten.");
     }
 
     savedPriceData = timeSeries;
-    savedSmaData = calculatedSma;
+    savedSmaData = smaSeries;
 
-    const latestDate = sortedDates[sortedDates.length - 1];
+    const dates = Object.keys(timeSeries).sort().reverse();
+    const latestDate = dates[0];
 
-    // 4. Im Cache (LocalStorage) speichern
+    const smaDates = Object.keys(smaSeries).sort().reverse();
+    const smaDate = smaDates[0];
+
+    // 4. Im LocalStorage abspeichern
     localStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
         cacheDate: todayStr,
         latestDate: latestDate,
+        smaDate: smaDate,
         timeSeries: timeSeries,
-        smaSeries: calculatedSma,
+        smaSeries: smaSeries,
         isCached: true
       })
     );
 
-    renderDashboard(latestDate, false);
+    renderDashboard(latestDate, smaDate, false);
 
   } catch (error) {
     console.error("Dashboard Fehler:", error);
@@ -473,9 +489,9 @@ async function loadData() {
 // DASHBOARD RENDERN
 // =====================================================
 
-function renderDashboard(latestDate, isFromCache) {
+function renderDashboard(latestDate, smaDate, isFromCache) {
   const price = Number(savedPriceData[latestDate]["4. close"]);
-  const sma200 = Number(savedSmaData[latestDate]["SMA"]);
+  const sma200 = Number(savedSmaData[smaDate || latestDate]["SMA"]);
 
   const distance = ((price - sma200) / sma200) * 100;
 
@@ -496,7 +512,7 @@ function renderDashboard(latestDate, isFromCache) {
   drawChart();
 
   document.getElementById("updated").textContent =
-    "Börsenkurs Stand: " + latestDate + (isFromCache ? " (Cache)" : "");
+    "Kurs: " + latestDate + " | SMA200: " + (smaDate || latestDate) + (isFromCache ? " (Cache)" : "");
 }
 
 
